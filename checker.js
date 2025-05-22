@@ -1,4 +1,7 @@
-[
+// sendTx.mjs
+import { ethers } from "ethers";
+// Contoh kumpulan ABI (bisa ditambahkan sebanyak yang kamu mau)
+const abis = [
   {
     type: "function",
     name: "DOMAIN_SEPARATOR",
@@ -1747,3 +1750,41 @@
   { type: "error", name: "TotalSupplyOverflow", inputs: [] },
   { type: "error", name: "WithdrawMoreThanMax", inputs: [] },
 ];
+
+// Calldata hex
+const calldata =
+  "0x694c21d80000000000000000000000005d876d73f4441d5f2438b1a3e2a51771b337f27a000000000000000000000000000000000000000000000000000000000000000155534443000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005f57e280196f73b229000000020000001b9c1b5ebe365ad2e45518acc2f082249dd2205d6462d47c8202fdc27d143af2463410f7fee225f49636cbb723ef4b696626669eb15745226aaba91daecd0fe621c";
+
+// Ekstrak selector dari calldata
+const selector = calldata.slice(0, 10);
+
+let matched = false;
+
+for (const abi of abis) {
+  try {
+    const iface = new ethers.Interface([abi]);
+    console.log(abi.name);
+    const sigHash = iface.getSighash(abi.name);
+    console.log(sigHash);
+    if (sigHash === selector) {
+      console.log(
+        `✅ Match found: ${abi.name}(${abi.inputs
+          .map((i) => i.type)
+          .join(", ")})`
+      );
+      const decoded = iface.decodeFunctionData(abi.name, calldata);
+      console.log("📦 Decoded arguments:");
+      decoded.forEach((arg, i) => {
+        console.log(`  - ${abi.inputs[i].name || `arg${i}`}: ${arg}`);
+      });
+      matched = true;
+      break;
+    }
+  } catch (err) {
+    // Ignore interface errors
+  }
+}
+
+if (!matched) {
+  console.log("❌ No matching ABI found for selector:", selector);
+}
